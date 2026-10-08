@@ -71,8 +71,26 @@ def checksum(data):
     total = (total >> 16) + (total & 0xFFFF)
     total = ~total & 0xFFFF
     return total
-
-
+def iphdr(source_ip,dest_ip,tcp_header_length):
+    IPVERSION = 4
+    IHL = 5
+    TOS = 0
+    TTL = 128
+    IPPROTOCOL = 6
+    total_length = (IHL * 4) + tcp_header_length
+    identification = random.randint(0,0xFFFF)
+    version_ihl = (IPVERSION << 4) | IHL
+    srcip = socket.inet_aton(source_ip)
+    destip = socket.inet_aton(dest_ip)
+    FLAGS = 2 #reserved = 0 DF = 1 MF = 0
+    FRAGMENT_OFFSET = 0
+    flag_n_fragment = (FLAGS << 13) | FRAGMENT_OFFSET
+    psodo_iphdr = struct.pack('!BBHHHBBH4s4s',version_ihl,TOS,total_length,identification, flag_n_fragment, TTL, IPPROTOCOL, 0, srcip, destip)
+    true_checksum = checksum(psodo_iphdr)
+    final_iphdr = struct.pack('!BBHHHBBH4s4s', version_ihl, TOS, total_length, identification, flag_n_fragment, TTL, IPPROTOCOL, true_checksum, srcip, destip)
+    return final_iphdr
+    
+    
 
 
 
@@ -81,7 +99,10 @@ test_data = final + pseudo_header("192.168.17.21", "192.164.121.21")
 print(checksum(test_data))
 
 
-print(len(hcreate(80,85,"SYN","192.168.17.21","192.164.121.21")))
+print(iphdr("192.168.17.21","192.164.121.21",20))
+test_ip = iphdr("192.168.17.21","192.164.121.21",20)
+print(len(test_ip))
+print(checksum(test_ip))
 #print(hcreate(11,19,"ASDAS"))
 
 
