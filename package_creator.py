@@ -108,4 +108,4 @@ def send_packet(sport,dport,mode,srcip,destip):
             SystemExit(1)
         soket.close()    
 
-send_packet(21,21,"-sS","10.0.2.15","192.168.56.101")
+send_packet(21,21,"-sS","192.168.56.102","192.168.56.103")
