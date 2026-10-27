@@ -92,42 +92,14 @@ def iphdr(source_ip,dest_ip,tcp_header_length):
     
     
 
+def send_packet(sport,dport,mode,srcip,destip):
+    try:
+        soket = socket.socket(socket.AF_INET,socket.SOCK_RAW,socket.IPPROTO_RAW)
+        soket.setsockopt(socket.IPPROTO_IP,socket.IP_HDRINCL,1)
+        full_packet = iphdr(srcip,destip,20) + hcreate(sport,dport,mode,srcip,destip)
+        soket.sendto(full_packet, (destip, 0))
+
+    except PermissionError:
+        print("Non-super user detected please use sudo when you use scan modes that required raw socket.")    
 
 
-final = hcreate(80, 85, "SYN", "192.168.17.21", "192.164.121.21")
-test_data = final + pseudo_header("192.168.17.21", "192.164.121.21")
-print(checksum(test_data))
-
-
-print(iphdr("192.168.17.21","192.164.121.21",20))
-test_ip = iphdr("192.168.17.21","192.164.121.21",20)
-print(len(test_ip))
-print(checksum(test_ip))
-#print(hcreate(11,19,"ASDAS"))
-
-
-
-
-
-
-
-#print(mode_selector("-sS"))
-#print(mode_selector("SYN"))
-#print(mode_selector("-sA"))
-#print(mode_selector("ACK"))
-#print(mode_selector("-sF"))
-#print(mode_selector("FIN"))
-#print(mode_selector("-sX"))
-#print(mode_selector("XMAS"))
-#print(mode_selector("-sM"))
-#print(mode_selector("MAIMON"))
-#print(mode_selector("ASDASD"))
-#print(mode_selector(12322313213))
-
-
-
-
-
-
-
-#print(pseudo_header("127.0.0.1","127.0.0.1"))
