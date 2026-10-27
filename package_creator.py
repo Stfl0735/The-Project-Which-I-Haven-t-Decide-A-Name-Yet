@@ -96,7 +96,8 @@ def send_packet(sport,dport,mode,srcip,destip):
     try:
         soket = socket.socket(socket.AF_INET,socket.SOCK_RAW,socket.IPPROTO_RAW)
         soket.setsockopt(socket.IPPROTO_IP,socket.IP_HDRINCL,1)
-        full_packet = iphdr(srcip,destip,20) + hcreate(sport,dport,mode,srcip,destip)
+        tcp_head = hcreate(sport,dport,mode,srcip,destip)
+        full_packet =   tcp_head + iphdr(srcip,destip,len(tcp_head))
         soket.sendto(full_packet, (destip, 0))
 
     except PermissionError:
