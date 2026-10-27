@@ -98,14 +98,19 @@ def send_packet(sport,dport,mode,srcip,destip):
             soket = socket.socket(socket.AF_INET,socket.SOCK_RAW,socket.IPPROTO_RAW)
             soket.setsockopt(socket.IPPROTO_IP,socket.IP_HDRINCL,1)
             tcp_head = hcreate(sport,dport,mode,srcip,destip)
-            full_packet =   tcp_head + iphdr(srcip,destip,len(tcp_head))
-            soket.sendto(full_packet,(destip,0))
-
+            full_packet =   iphdr(srcip,destip,len(tcp_head))  + tcp_head
+            soket.connect((destip,0))
+            soket.send(full_packet)            
+            soket.close()
         except PermissionError:
             print("Non-super user detected please use sudo when you use scan modes that required raw socket.")    
         except  ConnectionError:
             print("A connection issue happened.")
             SystemExit(1)
-        soket.close()    
+            
 
-send_packet(21,21,"-sS","192.168.56.102","192.168.56.103")
+send_packet(1045, 1047, "-sS", "127.0.0.1", "127.0.0.1")  # SYN
+send_packet(1045, 1047, "-sA", "127.0.0.1", "127.0.0.1")  # ACK
+send_packet(1045, 1047, "-sF", "127.0.0.1", "127.0.0.1")  # FIN
+send_packet(1045, 1047, "-sX", "127.0.0.1", "127.0.0.1")  # XMAS
+send_packet(1045, 1047, "-sM", "127.0.0.1", "127.0.0.1")  # MAIMON
