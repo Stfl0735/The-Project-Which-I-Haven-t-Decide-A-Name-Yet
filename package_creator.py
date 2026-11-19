@@ -1,6 +1,9 @@
+from queue import Queue
+import select
 import struct
 import socket
 import random
+import time
 def pseudo_header(srcip,destip):
     HEADERLENGTH = 20
     PROTOCOLCODE = 6
@@ -104,13 +107,103 @@ def send_packet(sport,dport,mode,srcip,destip):
             soket.close()
         except PermissionError:
             print("Non-super user detected please use sudo when you use scan modes that required raw socket.")    
+            raise SystemExit(1)
         except  ConnectionError:
             print("A connection issue happened.")
-            SystemExit(1)
-            
+            raise SystemExit(1)
 
-send_packet(1045, 1047, "-sS", "127.0.0.1", "127.0.0.1")  # SYN
-send_packet(1045, 1047, "-sA", "127.0.0.1", "127.0.0.1")  # ACK
-send_packet(1045, 1047, "-sF", "127.0.0.1", "127.0.0.1")  # FIN
-send_packet(1045, 1047, "-sX", "127.0.0.1", "127.0.0.1")  # XMAS
-send_packet(1045, 1047, "-sM", "127.0.0.1", "127.0.0.1")  # MAIMON
+def parse_response(raw_data, expected_sport):
+    if len(raw_data) < 20:
+        return None
+    ihl = (raw_data[0] & 0x0F) * 4
+    if len(raw_data) < ihl + 20:
+        return None
+    tcp_header = raw_data[ihl:ihl + 20]
+    tcp_sport, tcp_dport, seq, ack, offset_flags, window, chksum, urg = struct.unpack('!HHIIHHHH', tcp_header)
+    if tcp_dport != expected_sport:   
+        return None
+    flags = offset_flags & 0x3F
+    return tcp_sport, {              
+        'SYN': bool(flags & 0x02),
+        'ACK': bool(flags & 0x10),
+        'RST': bool(flags & 0x04),
+        'FIN': bool(flags & 0x01),
+    }
+
+
+def collect_responses(recv_sock, destip, sport, expected_ports, timeout=2.0):
+    responses = {}                    
+    end_time = time.time() + timeout
+    while len(responses) < len(expected_ports):
+        remaining = end_time - time.time()
+        if remaining <= 0:
+            break
+        ready = select.select([recv_sock], [], [], remaining)
+        if not ready[0]:
+            break
+        raw_data, addr = recv_sock.recvfrom(65535)
+        if addr[0] != destip:
+            continue
+        parsed = parse_response(raw_data, sport)
+        if parsed is None:
+            continue
+        port, flags = parsed
+        if port in expected_ports and port not in responses:
+            responses[port] = flags
+    return responses
+
+def classify_result(mode, response):
+    SHORT_TO_LONG = {"-sS": "SYN", "-sA": "ACK", "-sF": "FIN", "-sX": "XMAS", "-sM": "MAIMON"}
+    mode = SHORT_TO_LONG.get(mode, mode).upper()
+
+    
+    if response is None:
+        if mode in ("SYN", "ACK"):
+            return "filtered"
+        return "open|filtered"        
+
+    rst = response['RST']
+    syn_ack = response['SYN'] and response['ACK']
+
+    if mode == "SYN":
+        if syn_ack:
+            return "open"
+        if rst:
+            return "closed"
+
+    elif mode == "ACK":
+        if rst:
+            return "unfiltered"       
+
+    else:                             
+        if rst:
+            return "closed"
+
+    return "unexpected"
+
+def scan_loop(ports, mode, srcip, destip, sport=40000, timeout=2.0):
+    recv_sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
+    order = Queue()                  
+    try:
+        for dport in ports:           
+            send_packet(sport, dport, mode, srcip, destip)
+            order.put(dport)
+        responses = collect_responses(recv_sock, destip, sport, set(ports), timeout)
+    finally:
+        recv_sock.close()
+
+    results = {}
+    while not order.empty():
+        port = order.get()
+        results[port] = classify_result(mode, responses.get(port))
+        print(f"{port}/tcp\t{results[port]}")
+    return results
+
+
+if __name__ == "__main__":
+    import os
+    if os.geteuid() != 0:
+        raise SystemExit("Please open it with Super User.")
+    for m in ("-sS", "-sA", "-sF", "-sX", "-sM"):
+        print(f"--- {m} ---")
+        scan_loop([22, 80, 443, 8080], m, "127.0.0.1", "127.0.0.1")
