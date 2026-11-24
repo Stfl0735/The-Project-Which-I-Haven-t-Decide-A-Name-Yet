@@ -96,22 +96,29 @@ def iphdr(source_ip,dest_ip,tcp_header_length):
     
 
 def send_packet(sport,dport,mode,srcip,destip):
-        
+        tcp_head = hcreate(sport,dport,mode,srcip,destip)
+        if tcp_head is None:
+            raise SystemExit(f"Invalid scan mode: {mode}")
+        full_packet =   iphdr(srcip,destip,len(tcp_head))  + tcp_head
+        soket = None
+
         try:
             soket = socket.socket(socket.AF_INET,socket.SOCK_RAW,socket.IPPROTO_RAW)
             soket.setsockopt(socket.IPPROTO_IP,socket.IP_HDRINCL,1)
-            tcp_head = hcreate(sport,dport,mode,srcip,destip)
-            full_packet =   iphdr(srcip,destip,len(tcp_head))  + tcp_head
+            
+            
             soket.connect((destip,0))
             soket.send(full_packet)            
-            soket.close()
+            
         except PermissionError:
             print("Non-super user detected please use sudo when you use scan modes that required raw socket.")    
             raise SystemExit(1)
         except  ConnectionError:
             print("A connection issue happened.")
             raise SystemExit(1)
-
+        finally:
+            if soket is not None:
+                soket.close()
 def parse_response(raw_data, expected_sport):
     if len(raw_data) < 20:
         return None
