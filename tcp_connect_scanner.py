@@ -20,8 +20,8 @@ def tcp_connect_scanner(hostaddr="",ports=[0],tout_val=3):
                  results[port] = f"error ({e.strerror})"
             finally:     
                  mysock.close()
-
-                  
+        print(f"{port}:{results[port]}")
+        return results          
 def list_creator(minval=0,maxval=65535):
     mylist = [x for x in range(minval,maxval + 1)]
     return mylist
