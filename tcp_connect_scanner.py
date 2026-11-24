@@ -12,7 +12,7 @@ def tcp_connect_scanner(hostaddr="",ports=[0],tout_val=3):
             try:
                 mysock.connect((hostaddr,port))
                 results[port] = "open" 
-            except socket.TimeoutError:
+            except TimeoutError:
                  results[port] = "filtered"
             except ConnectionRefusedError:
                  results[port] = "closed"
@@ -29,7 +29,7 @@ def list_creator(minval=0,maxval=65535):
             
 
 def main():
-    tcp_connect_scanner("192.168.56.101",list_creator(20,38),4)             
+    tcp_connect_scanner("127.0.0.1",list_creator(20,38),4)             
      
 if __name__ == "__main__":
     main()
