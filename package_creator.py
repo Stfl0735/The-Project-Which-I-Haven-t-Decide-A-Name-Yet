@@ -46,7 +46,7 @@ def hcreate(sport,dport,mode,srcip,destip):
         try:
             flag_value = int(flags,2)
         except ValueError:
-            print("Entered a non-defined mode. Package doesn't created.")
+            
             return
         if flag_value & ACKMASK:
             ack_value = random.randint(0, 0xFFFFFFFF)
@@ -211,6 +211,6 @@ if __name__ == "__main__":
     import os
     if os.geteuid() != 0:
         raise SystemExit("Please open it with Super User.")
-    for m in ("-sS", "-sA", "-sF", "-sX", "-sM"):
+    for m in ("-sS", "-sA", "-sF", "-sX", "-sM","-sZ"):
         print(f"--- {m} ---")
         scan_loop([22, 80, 443, 8080], m, "127.0.0.1", "127.0.0.1")
